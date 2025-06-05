@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奖品兑换 - 家庭教育任务积分系统</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 3rem;
+            font-size: 1.1rem;
+        }
+        
+        .prizes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        
+        .prize-item {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            max-width: none;
+        }
+        
+        .prize-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .prize-item.unavailable {
+            opacity: 0.6;
+            filter: grayscale(0.3);
+        }
+        
+        .prize-image {
+            height: 180px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        
+        .prize-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .prize-info {
+            padding: 1rem;
+        }
+        
+        .prize-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        
+        .prize-description {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .prize-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            font-size: 0.85rem;
+        }
+        
+        .prize-points {
+            background: #e74c3c;
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .prize-quantity {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        /* 分页样式 */
+        .btn-outline {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            color: #007bff;
+        }
+        
+        .btn-outline:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .prizes-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .prizes-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 0.8rem;
+            }
+            
+            .prize-image {
+                height: 150px;
+            }
+            
+            .prize-info {
+                padding: 0.8rem;
+            }
+            
+            .prize-info h4 {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .prizes-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.5rem;
+            }
+            
+            .prize-image {
+                height: 120px;
+            }
+            
+            .prize-info {
+                padding: 0.6rem;
+            }
+            
+            .prize-info h4 {
+                font-size: 0.9rem;
+            }
+            
+            .prize-description {
+                font-size: 0.8rem;
+                -webkit-line-clamp: 1;
+            }
+            
+            .prize-meta {
+                font-size: 0.75rem;
+            }
+            
+            /* 移动端分页样式 */
+            #pagination > div:first-child {
+                flex-direction: column;
+                gap: 1rem !important;
+                align-items: center;
+            }
+            
+            #pageNumbers {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            #pageNumbers button {
+                min-width: 35px;
+                padding: 0.3rem 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">🎯 家庭教育系统</div>
+            <div class="nav-links">
+                <a href="/student/dashboard.html">首页</a>
+                <a href="/student/available-tasks.html">可领取任务</a>
+                <a href="/student/my-tasks.html">我的任务</a>
+                <a href="/student/exchange-prize.html" class="active">奖品兑换</a>
+            </div>
+            <div class="user-info">
+                <!-- 用户信息将通过JS动态填充 -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 页面标题和积分显示 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h2>🎁 奖品兑换</h2>
+                    <p style="color: #666; margin: 0;">用你的积分兑换心仪的奖品吧！</p>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; min-width: 120px;">
+                    <div style="font-size: 1.5rem; font-weight: bold;" id="currentPoints">-</div>
+                    <div style="font-size: 0.9rem;">可用积分</div>
+                </div>
+            </div>
+            
+            <!-- 筛选和搜索 -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="pointsFilter">积分筛选：</label>
+                    <select id="pointsFilter" onchange="filterPrizes()">
+                        <option value="">全部价格</option>
+                        <option value="affordable">我能兑换的</option>
+                        <option value="10">10分以下</option>
+                        <option value="30">10-30分</option>
+                        <option value="50">30-50分</option>
+                        <option value="100">50分以上</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="searchInput">搜索：</label>
+                    <input type="text" id="searchInput" placeholder="搜索奖品名称..." 
+                           onkeyup="searchPrizes()" style="width: 200px;">
+                </div>
+                
+                <button class="btn btn-secondary" onclick="loadPrizes()">
+                    🔄 刷新
+                </button>
+            </div>
+        </div>
+
+        <!-- 奖品统计 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                <div class="stats-number" id="availablePrizesCount">-</div>
+                <div class="stats-label">可兑换奖品</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white;">
+                <div class="stats-number" id="affordablePrizesCount">-</div>
+                <div class="stats-label">我能兑换的</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); color: white;">
+                <div class="stats-number" id="exchangedCount">-</div>
+                <div class="stats-label">已兑换数量</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); color: white;">
+                <div class="stats-number" id="expiringSoonCount">-</div>
+                <div class="stats-label">即将过期</div>
+            </div>
+        </div>
+
+        <!-- 奖品列表 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>🛍️ 奖品商店</h3>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="color: #666; font-size: 0.9rem;">每页显示：</span>
+                    <select id="pageSize" onchange="changePageSize()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="6">6个</option>
+                        <option value="9" selected>9个</option>
+                        <option value="12">12个</option>
+                        <option value="18">18个</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="prizesList" class="loading">
+                <div class="spinner"></div>
+            </div>
+            
+            <!-- 分页控件 -->
+            <div id="pagination" style="display: none; margin-top: 2rem; text-align: center;">
+                <div style="display: flex; justify-content: center; align-items: center; gap: 1rem;">
+                    <button id="prevPage" class="btn btn-secondary" onclick="goToPage(currentPage - 1)" disabled>
+                        ← 上一页
+                    </button>
+                    
+                    <div id="pageInfo" style="color: #666; font-size: 0.9rem;">
+                        <!-- 页码信息将通过JS填充 -->
+                    </div>
+                    
+                    <button id="nextPage" class="btn btn-secondary" onclick="goToPage(currentPage + 1)" disabled>
+                        下一页 →
+                    </button>
+                </div>
+                
+                <!-- 页码按钮 -->
+                <div id="pageNumbers" style="display: flex; justify-content: center; margin-top: 1rem; gap: 0.5rem;">
+                    <!-- 页码按钮将通过JS填充 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 我的兑换记录 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>📜 我的兑换记录</h3>
+                <button class="btn btn-secondary" onclick="loadExchangeHistory()">
+                    🔄 刷新记录
+                </button>
+            </div>
+            <div id="exchangeHistory" class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 奖品详情模态框 -->
+    <div id="prizeDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
+            <div class="card" style="max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>🎁 奖品详情</h3>
+                    <button class="btn btn-secondary" onclick="closePrizeDetail()">✕</button>
+                </div>
+                <div id="prizeDetailContent">
+                    <!-- 奖品详情内容将通过JS填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // 全局变量
+        let allPrizes = []; // 存储所有奖品数据
+        let currentPage = 1; // 当前页码
+        let pageSize = 9; // 每页显示数量
+        let totalPages = 0; // 总页数
+        let currentPoints = 0;
+        let exchangeHistory = [];
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing page...');
+            
+            // 检查是否登录
+            if (!Page.requireAuth()) {
+                console.log('User not authenticated, redirecting...');
+                return;
+            }
+            
+            console.log('User authenticated, loading data...');
+            loadUserInfo();
+            loadUserPoints();
+            
+            // 先加载奖品数据，再加载兑换记录
+            loadPrizes().then(() => {
+                // 奖品数据加载完成后再加载兑换记录，这样就能正确显示奖品名称
+                loadExchangeHistory();
+            }).catch(error => {
+                console.error('Failed to load prizes:', error);
+                // 即使奖品加载失败，也尝试加载兑换记录
+                loadExchangeHistory();
+            });
+        });
+
+        // 加载用户信息
+        function loadUserInfo() {
+            const user = Storage.getUser();
+            if (user) {
+                const displayName = user.realName || user.name || user.username || '用户';
+                // 导航栏用户信息将由common.js的initNavbar函数处理
+                // 这里我们不需要手动设置，因为common.js会自动处理
+                console.log('User info loaded:', displayName);
+            }
+        }
+
+        // 加载用户积分
+        async function loadUserPoints() {
+            try {
+                const response = await Http.get('/api/points/current');
+                if (response.code === 200) {
+                    currentPoints = response.data || 0;
+                    document.getElementById('currentPoints').textContent = currentPoints;
+                } else {
+                    console.error('Failed to load points:', response.message);
+                    currentPoints = 0;
+                    document.getElementById('currentPoints').textContent = '0';
+                }
+            } catch (error) {
+                console.error('Error loading points:', error);
+                currentPoints = 0;
+                document.getElementById('currentPoints').textContent = '0';
+            }
+        }
+
+        // 加载奖品列表
+        async function loadPrizes() {
+            try {
+                console.log('Starting to load prizes...');
+                console.log('Token exists:', !!Storage.getToken());
+                console.log('User:', Storage.getUser());
+                
+                const response = await Http.get('/api/prizes/available');
+                console.log('Prizes API response:', response);
+                
+                if (response.code === 200) {
+                    console.log('Prizes loaded successfully:', response.data);
+                    allPrizes = response.data || [];
+                    renderPrizes();
+                    return response.data; // 返回数据以供Promise使用
+                } else {
+                    console.error('Failed to load prizes:', response.message);
+                    Toast.error(response.message || '加载奖品失败');
+                    document.getElementById('prizesList').innerHTML = '<div class="empty-state">加载奖品失败，请稍候再试</div>';
+                    throw new Error(response.message || '加载奖品失败');
+                }
+            } catch (error) {
+                console.error('Error loading prizes:', error);
+                Toast.error('网络错误，请稍后重试');
+                document.getElementById('prizesList').innerHTML = '<div class="empty-state">网络错误，请稍后重试</div>';
+                throw error; // 重新抛出错误以供catch处理
+            }
+        }
+
+        // 渲染奖品列表
+        function renderPrizes() {
+            const prizesList = document.getElementById('prizesList');
+            const pagination = document.getElementById('pagination');
+            
+            if (!allPrizes || allPrizes.length === 0) {
+                prizesList.innerHTML = '<div class="empty-state">暂无奖品</div>';
+                pagination.style.display = 'none';
+                return;
+            }
+
+            // 计算分页
+            totalPages = Math.ceil(allPrizes.length / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const currentPrizes = allPrizes.slice(startIndex, endIndex);
+
+            // 渲染奖品
+            let html = '<div class="prizes-grid">';
+            currentPrizes.forEach(prize => {
+                try {
+                    const isAvailable = prize.stock > 0;
+                    const canAfford = (prize.costPoints || 0) <= currentPoints;
+                    const prizeClass = isAvailable ? 'prize-item' : 'prize-item unavailable';
+                    
+                    html += `
+                        <div class="${prizeClass}">
+                            <div class="prize-image">
+                                ${prize.imageUrl ? 
+                                    `<img src="${prize.imageUrl}" alt="${prize.name}" onerror="this.style.display='none'; this.parentNode.style.background='linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'; this.parentNode.innerHTML='<div style=\"display:flex;align-items:center;justify-content:center;height:100%;color:#6c757d;font-size:3rem;\">🎁</div>';">` :
+                                    `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);color:#6c757d;font-size:3rem;">🎁</div>`
+                                }
+                            </div>
+                            <div class="prize-info">
+                                <h4>${prize.name}</h4>
+                                <p class="prize-description">${prize.description || ''}</p>
+                                <div class="prize-meta">
+                                    <span class="prize-points">${prize.costPoints || 0} 积分</span>
+                                    <span class="prize-quantity">库存: ${prize.stock}</span>
+                                </div>
+                                ${isAvailable && canAfford ? 
+                                    `<button class="btn btn-primary" onclick="exchangePrize(${prize.id})">兑换</button>` :
+                                    isAvailable && !canAfford ?
+                                    `<button class="btn btn-secondary" disabled>积分不足</button>` :
+                                    `<button class="btn btn-secondary" disabled>缺货</button>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                } catch (err) {
+                    console.error('Error rendering prize:', prize, err);
+                }
+            });
+            html += '</div>';
+            
+            prizesList.innerHTML = html;
+
+            // 更新分页控件
+            updatePagination();
+        }
+
+        // 更新分页控件
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            const prevPage = document.getElementById('prevPage');
+            const nextPage = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+            const pageNumbers = document.getElementById('pageNumbers');
+
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'block';
+            
+            // 更新上一页/下一页按钮状态
+            prevPage.disabled = currentPage === 1;
+            nextPage.disabled = currentPage === totalPages;
+            
+            // 更新页码信息
+            const startItem = (currentPage - 1) * pageSize + 1;
+            const endItem = Math.min(currentPage * pageSize, allPrizes.length);
+            pageInfo.innerHTML = `第 ${startItem}-${endItem} 项，共 ${allPrizes.length} 项 (第 ${currentPage}/${totalPages} 页)`;
+            
+            // 渲染页码按钮
+            let pageNumbersHTML = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                pageNumbersHTML += `<button class="btn btn-outline" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    pageNumbersHTML += `<span style="color: #999; margin: 0 0.5rem;">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                const btnClass = isActive ? 'btn btn-primary' : 'btn btn-outline';
+                pageNumbersHTML += `<button class="${btnClass}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageNumbersHTML += `<span style="color: #999; margin: 0 0.5rem;">...</span>`;
+                }
+                pageNumbersHTML += `<button class="btn btn-outline" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            pageNumbers.innerHTML = pageNumbersHTML;
+        }
+
+        // 分页相关函数
+        function changePageSize() {
+            const pageSizeSelect = document.getElementById('pageSize');
+            pageSize = parseInt(pageSizeSelect.value);
+            currentPage = 1; // 重置到第一页
+            renderPrizes();
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderPrizes();
+        }
+
+        // 兑换奖品
+        async function exchangePrize(prizeId) {
+            const prize = allPrizes.find(p => p.id === prizeId);
+            if (!prize) {
+                Toast.error('奖品不存在');
+                return;
+            }
+
+            if (prize.costPoints > currentPoints) {
+                Toast.error('积分不足，无法兑换');
+                return;
+            }
+
+            if (prize.stock <= 0) {
+                Toast.error('奖品库存不足');
+                return;
+            }
+
+            if (!confirm(`确定要兑换"${prize.name}"吗？\n将消耗 ${prize.costPoints} 积分`)) {
+                return;
+            }
+
+            try {
+                Loading.show();
+                const response = await Http.post(`/api/prizes/${prizeId}/exchange`);
+                
+                if (response.code === 200) {
+                    Toast.success('奖品兑换成功！等待家长确认');
+                    // 重新加载数据
+                    await Promise.all([
+                        loadUserPoints(),
+                        loadPrizes()
+                    ]);
+                } else {
+                    Toast.error(response.message || '兑换失败');
+                }
+            } catch (error) {
+                console.error('Exchange error:', error);
+                Toast.error('网络错误，请稍后重试');
+            } finally {
+                Loading.hide();
+            }
+        }
+
+        // 加载兑换记录
+        async function loadExchangeHistory() {
+            try {
+                Loading.show(document.getElementById('exchangeHistory'));
+                const response = await Http.get('/api/prizes/exchanges/my');
+                
+                if (response.code === 200) {
+                    exchangeHistory = response.data || [];
+                    renderExchangeHistory();
+                    updateStatistics(); // 重新更新统计信息
+                } else {
+                    throw new Error(response.message || '加载失败');
+                }
+            } catch (error) {
+                document.getElementById('exchangeHistory').innerHTML = `
+                    <div style="text-align: center; color: #e74c3c; padding: 2rem;">
+                        <p>加载兑换记录失败</p>
+                        <button class="btn btn-primary" onclick="loadExchangeHistory()">重试</button>
+                    </div>
+                `;
+            } finally {
+                Loading.hide();
+            }
+        }
+
+        // 渲染兑换记录
+        function renderExchangeHistory() {
+            const container = document.getElementById('exchangeHistory');
+            
+            if (exchangeHistory.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 2rem;">
+                        <p>暂无兑换记录</p>
+                        <p style="font-size: 0.9rem; margin-top: 1rem;">快去兑换你的第一个奖品吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 按兑换时间排序，最新的在前面
+            const sortedHistory = exchangeHistory.sort((a, b) => 
+                new Date(b.exchangedAt || b.exchangeTime || 0) - new Date(a.exchangedAt || a.exchangeTime || 0)
+            );
+
+            container.innerHTML = sortedHistory.map(exchange => {
+                // 通过prizeId查找奖品名称
+                const prize = allPrizes.find(p => p.id === exchange.prizeId);
+                const prizeName = prize ? prize.name : (exchange.prizeName || '未知奖品');
+                
+                return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; border-radius: 5px; margin-bottom: 0.5rem;">
+                    <div>
+                        <div style="font-weight: bold; color: #333;">${prizeName}</div>
+                        <div style="color: #666; margin-top: 0.25rem;">${exchange.costPoints || 0} 积分</div>
+                        <div style="font-size: 0.8rem; color: #999; margin-top: 0.25rem;">
+                            兑换时间：${formatDate(exchange.exchangedAt || exchange.exchangeTime)}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="task-status status-${(exchange.status || 'PENDING').toLowerCase()}" style="margin-bottom: 0.5rem;">
+                            ${getExchangeStatusText(exchange.status)}
+                        </div>
+                        ${exchange.status === 'CONFIRMED' && (exchange.confirmedAt || exchange.confirmTime) ? `
+                            <div style="font-size: 0.8rem; color: #28a745;">
+                                确认时间：${formatDate(exchange.confirmedAt || exchange.confirmTime)}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        // 安全的日期格式化函数
+        function formatDate(dateString, format = 'YYYY-MM-DD HH:mm') {
+            if (!dateString) return '未知时间';
+            
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '无效时间';
+                
+                // 如果DateUtil存在且有format方法，使用它
+                if (typeof DateUtil !== 'undefined' && DateUtil.format) {
+                    return DateUtil.format(dateString, format);
+                }
+                
+                // 否则使用简单的格式化
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                
+                if (format === 'YYYY-MM-DD') {
+                    return `${year}-${month}-${day}`;
+                } else {
+                    return `${year}-${month}-${day} ${hours}:${minutes}`;
+                }
+            } catch (error) {
+                console.error('日期格式化错误:', error, dateString);
+                return '格式错误';
+            }
+        }
+
+        // 获取兑换状态文本
+        function getExchangeStatusText(status) {
+            const statusMap = {
+                'PENDING': '待确认',
+                'CONFIRMED': '已确认',
+                'CANCELLED': '已取消'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 判断是否即将过期（3天内）
+        function isExpiringSoon(prize) {
+            try {
+                if (!prize || !prize.expireAt) return false;
+                const now = new Date();
+                const expireDate = new Date(prize.expireAt);
+                
+                // 检查日期是否有效
+                if (isNaN(expireDate.getTime())) return false;
+                
+                const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+                return expireDate <= threeDaysLater && expireDate > now;
+            } catch (error) {
+                console.error('判断奖品是否即将过期时出错:', error, prize);
+                return false;
+            }
+        }
+
+        // 判断是否已过期
+        function isExpired(prize) {
+            try {
+                if (!prize || !prize.expireAt) return false;
+                const expireDate = new Date(prize.expireAt);
+                
+                // 检查日期是否有效
+                if (isNaN(expireDate.getTime())) return false;
+                
+                return expireDate < new Date();
+            } catch (error) {
+                console.error('判断奖品是否过期时出错:', error, prize);
+                return false;
+            }
+        }
+
+        // 筛选奖品
+        function filterPrizes() {
+            const pointsFilter = document.getElementById('pointsFilter').value;
+            const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredPrizes = allPrizes.filter(prize => {
+                // 积分筛选
+                let matchPoints = true;
+                if (pointsFilter) {
+                    if (pointsFilter === 'affordable') {
+                        matchPoints = prize.costPoints <= currentPoints;
+                    } else {
+                        const filterValue = parseInt(pointsFilter);
+                        if (filterValue === 10) {
+                            matchPoints = prize.costPoints < 10;
+                        } else if (filterValue === 30) {
+                            matchPoints = prize.costPoints >= 10 && prize.costPoints <= 30;
+                        } else if (filterValue === 50) {
+                            matchPoints = prize.costPoints > 30 && prize.costPoints <= 50;
+                        } else if (filterValue === 100) {
+                            matchPoints = prize.costPoints > 50;
+                        }
+                    }
+                }
+
+                // 关键词搜索
+                const matchSearch = !searchKeyword || 
+                    prize.name.toLowerCase().includes(searchKeyword) ||
+                    (prize.description && prize.description.toLowerCase().includes(searchKeyword));
+                
+                return matchPoints && matchSearch;
+            });
+
+            renderPrizes();
+        }
+
+        // 搜索奖品
+        function searchPrizes() {
+            filterPrizes();
+        }
+
+        // 清除筛选条件
+        function clearFilters() {
+            document.getElementById('pointsFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            filteredPrizes = [...allPrizes];
+            renderPrizes();
+        }
+
+        // 查看奖品详情
+        async function viewPrizeDetail(prizeId) {
+            try {
+                const prize = allPrizes.find(p => p.id === prizeId);
+                if (!prize) {
+                    Toast.error('奖品不存在');
+                    return;
+                }
+
+                const content = document.getElementById('prizeDetailContent');
+                const canAfford = prize.costPoints <= currentPoints;
+                const prizeIsExpiringSoon = isExpiringSoon(prize);
+                const prizeIsExpired = isExpired(prize);
+
+                content.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <h4>${prize.name || ''}</h4>
+                        <div style="margin: 0.5rem 0;">
+                            ${prizeIsExpired ? '<div style="color: #dc3545; font-weight: bold; margin-bottom: 0.5rem;">⚠️ 奖品已过期</div>' : ''}
+                            ${prizeIsExpiringSoon && !prizeIsExpired ? '<div style="color: #ffc107; font-weight: bold; margin-bottom: 0.5rem;">⏰ 即将过期</div>' : ''}
+                            <div class="prize-points" style="display: inline-block; background: ${canAfford ? '#28a745' : '#6c757d'};">
+                                ${prize.costPoints || 0} 积分
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong>奖品描述：</strong>
+                        <p style="margin: 0.5rem 0; line-height: 1.6; background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            ${prize.description || '暂无详细描述'}
+                        </p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <strong>所需积分：</strong>
+                            <span class="prize-points">${prize.costPoints || 0} 积分</span>
+                        </div>
+                        <div>
+                            <strong>剩余库存：</strong>
+                            <span style="color: ${prize.stock > 0 ? '#28a745' : '#dc3545'};">
+                                ${prize.stock || 0} 个
+                            </span>
+                        </div>
+                        <div>
+                            <strong>我的积分：</strong>
+                            <span style="color: ${canAfford ? '#28a745' : '#dc3545'};">
+                                ${currentPoints} 积分
+                            </span>
+                        </div>
+                        ${prize.expireAt ? `
+                            <div>
+                                <strong>有效期至：</strong>
+                                <span style="color: ${prizeIsExpired ? '#dc3545' : prizeIsExpiringSoon ? '#ffc107' : 'inherit'};">
+                                    ${formatDate(prize.expireAt, 'YYYY-MM-DD')}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${!canAfford ? `
+                        <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+                            <strong>💡 提示：</strong>
+                            你还需要 <strong>${prize.costPoints - currentPoints}</strong> 积分才能兑换这个奖品。
+                            继续完成任务赚取积分吧！
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-warning" 
+                                onclick="exchangePrizeFromDetail(${prize.id})" 
+                                style="flex: 1;"
+                                ${!canAfford || prize.stock <= 0 || prizeIsExpired ? 'disabled' : ''}>
+                            ${prize.stock <= 0 ? '📦 库存不足' : prizeIsExpired ? '⚠️ 已过期' : !canAfford ? '💰 积分不足' : '🎁 立即兑换'}
+                        </button>
+                        <button class="btn btn-secondary" onclick="closePrizeDetail()">
+                            ❌ 关闭
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('prizeDetailModal').style.display = 'block';
+            } catch (error) {
+                console.error('查看奖品详情失败:', error);
+                Toast.error('加载奖品详情失败');
+            }
+        }
+
+        // 关闭奖品详情
+        function closePrizeDetail() {
+            document.getElementById('prizeDetailModal').style.display = 'none';
+        }
+
+        // 从详情页面兑换奖品
+        async function exchangePrizeFromDetail(prizeId) {
+            await exchangePrize(prizeId);
+            closePrizeDetail();
+        }
+
+        // 更新统计信息
+        function updateStatistics() {
+            const now = new Date();
+            const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+            
+            const stats = {
+                available: allPrizes.length,
+                affordable: allPrizes.filter(prize => (prize.costPoints || 0) <= currentPoints).length,
+                exchanged: exchangeHistory.length,
+                expiringSoon: allPrizes.filter(prize => {
+                    if (!prize.expireAt) return false;
+                    const expireDate = new Date(prize.expireAt);
+                    return expireDate <= threeDaysLater && expireDate > now;
+                }).length
+            };
+
+            // 检查DOM元素是否存在再更新
+            const availableEl = document.getElementById('availablePrizesCount');
+            const affordableEl = document.getElementById('affordablePrizesCount');
+            const exchangedEl = document.getElementById('exchangedCount');
+            const expiringSoonEl = document.getElementById('expiringSoonCount');
+            
+            if (availableEl) availableEl.textContent = stats.available;
+            if (affordableEl) affordableEl.textContent = stats.affordable;
+            if (exchangedEl) exchangedEl.textContent = stats.exchanged;
+            if (expiringSoonEl) expiringSoonEl.textContent = stats.expiringSoon;
+        }
+    </script>
+</body>
+</html> 

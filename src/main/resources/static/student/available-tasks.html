@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可领取任务 - 家庭教育任务积分系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">🎯 家庭教育系统</div>
+            <div class="nav-links">
+                <a href="/student/dashboard.html">首页</a>
+                <a href="/student/available-tasks.html" class="active">可领取任务</a>
+                <a href="/student/my-tasks.html">我的任务</a>
+                <a href="/student/exchange-prize.html">奖品兑换</a>
+            </div>
+            <div class="user-info">
+                <!-- 用户信息将通过JS动态填充 -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 页面标题和积分显示 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <h2>📋 可领取任务</h2>
+                    <p style="color: #666; margin: 0;">选择感兴趣的任务开始挑战吧！</p>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; min-width: 120px;">
+                    <div style="font-size: 1.5rem; font-weight: bold;" id="currentPoints">-</div>
+                    <div style="font-size: 0.9rem;">当前积分</div>
+                </div>
+            </div>
+            
+            <!-- 筛选和搜索 -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="pointsFilter">积分筛选：</label>
+                    <select id="pointsFilter" onchange="filterTasks()">
+                        <option value="">全部积分</option>
+                        <option value="5">5分以下</option>
+                        <option value="10">5-10分</option>
+                        <option value="20">10-20分</option>
+                        <option value="50">20分以上</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="searchInput">搜索：</label>
+                    <input type="text" id="searchInput" placeholder="搜索任务标题..." 
+                           onkeyup="searchTasks()" style="width: 200px;">
+                </div>
+                
+                <button class="btn btn-secondary" onclick="loadTasks()">
+                    🔄 刷新
+                </button>
+            </div>
+        </div>
+
+        <!-- 任务统计 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                <div class="stats-number" id="availableTasksCount">-</div>
+                <div class="stats-label">可领取任务</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white;">
+                <div class="stats-number" id="avgPoints">-</div>
+                <div class="stats-label">平均积分</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); color: white;">
+                <div class="stats-number" id="urgentTasks">-</div>
+                <div class="stats-label">紧急任务</div>
+            </div>
+            <div class="card" style="text-align: center; background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); color: white;">
+                <div class="stats-number" id="highRewardTasks">-</div>
+                <div class="stats-label">高分任务</div>
+            </div>
+        </div>
+
+        <!-- 任务列表 -->
+        <div class="card">
+            <h3>📝 任务列表</h3>
+            <div id="tasksList" class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务详情模态框 -->
+    <div id="taskDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
+            <div class="card" style="max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>📋 任务详情</h3>
+                    <button class="btn btn-secondary" onclick="closeTaskDetail()">✕</button>
+                </div>
+                <div id="taskDetailContent">
+                    <!-- 任务详情内容将通过JS填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let allTasks = [];
+        let filteredTasks = [];
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!Page.requireAuth() || !Page.requireRole('STUDENT')) {
+                return;
+            }
+
+            loadCurrentPoints();
+            loadTasks();
+        });
+
+        // 加载当前积分
+        async function loadCurrentPoints() {
+            try {
+                const response = await Http.get('/api/points/current');
+                if (response.code === 200) {
+                    document.getElementById('currentPoints').textContent = response.data || 0;
+                }
+            } catch (error) {
+                document.getElementById('currentPoints').textContent = '0';
+            }
+        }
+
+        // 加载任务列表
+        async function loadTasks() {
+            try {
+                Loading.show(document.getElementById('tasksList'));
+                const response = await Http.get('/api/tasks/available');
+                
+                if (response.code === 200) {
+                    allTasks = response.data || [];
+                    filteredTasks = [...allTasks];
+                    
+                    updateStatistics();
+                    renderTasks();
+                } else {
+                    throw new Error(response.message || '加载失败');
+                }
+            } catch (error) {
+                document.getElementById('tasksList').innerHTML = `
+                    <div style="text-align: center; color: #e74c3c; padding: 2rem;">
+                        <p>加载任务失败</p>
+                        <button class="btn btn-primary" onclick="loadTasks()">重试</button>
+                    </div>
+                `;
+                Toast.error('加载任务失败，请稍后重试');
+            } finally {
+                Loading.hide();
+            }
+        }
+
+        // 更新统计信息
+        function updateStatistics() {
+            const now = new Date();
+            const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            
+            const stats = {
+                available: allTasks.length,
+                avgPoints: allTasks.length > 0 ? Math.round(allTasks.reduce((sum, task) => sum + task.point, 0) / allTasks.length) : 0,
+                urgent: allTasks.filter(task => new Date(task.deadline) <= tomorrow).length,
+                highReward: allTasks.filter(task => task.point >= 20).length
+            };
+
+            document.getElementById('availableTasksCount').textContent = stats.available;
+            document.getElementById('avgPoints').textContent = stats.avgPoints;
+            document.getElementById('urgentTasks').textContent = stats.urgent;
+            document.getElementById('highRewardTasks').textContent = stats.highReward;
+        }
+
+        // 渲染任务列表
+        function renderTasks() {
+            const container = document.getElementById('tasksList');
+            
+            if (filteredTasks.length === 0) {
+                if (allTasks.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 2rem;">
+                            <p>暂无可领取的任务</p>
+                            <p style="font-size: 0.9rem; margin-top: 1rem;">请联系家长发布新任务</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 2rem;">
+                            <p>没有符合条件的任务</p>
+                            <button class="btn btn-secondary" onclick="clearFilters()">清除筛选条件</button>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            // 按截止时间排序，紧急的在前面
+            const sortedTasks = filteredTasks.sort((a, b) => {
+                // 首先按是否紧急排序
+                const aUrgent = isUrgentTask(a);
+                const bUrgent = isUrgentTask(b);
+                if (aUrgent !== bUrgent) {
+                    return bUrgent - aUrgent; // 紧急的排在前面
+                }
+                // 然后按积分排序（高积分在前）
+                return b.point - a.point;
+            });
+
+            container.innerHTML = sortedTasks.map(task => {
+                const isUrgent = isUrgentTask(task);
+                const timeLeft = DateUtil.fromNow(task.deadline);
+                
+                return `
+                    <div class="task-item" style="margin-bottom: 1rem; ${isUrgent ? 'border-left: 4px solid #dc3545;' : ''}">
+                        <div class="task-header">
+                            <div class="task-title">
+                                ${task.title}
+                                ${isUrgent ? '<span style="color: #dc3545; font-size: 0.8rem; margin-left: 0.5rem;">🔥 紧急</span>' : ''}
+                            </div>
+                            <div class="task-points">${task.point} 积分</div>
+                        </div>
+                        
+                        <div class="task-description">${task.description || '暂无描述'}</div>
+                        
+                        <div class="task-meta">
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <span class="task-deadline" style="color: ${isUrgent ? '#dc3545' : '#666'};">
+                                    截止：${DateUtil.format(task.deadline)} (${timeLeft})
+                                </span>
+                                <span style="color: #666; font-size: 0.9rem;">
+                                    发布：${DateUtil.format(task.createTime)}
+                                </span>
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-secondary" onclick="viewTaskDetail(${task.id})">
+                                    👁️ 查看详情
+                                </button>
+                                <button class="btn btn-primary" onclick="assignTask(${task.id})">
+                                    ✅ 领取任务
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 判断是否是紧急任务（24小时内截止）
+        function isUrgentTask(task) {
+            const now = new Date();
+            const deadline = new Date(task.deadline);
+            const timeDiff = deadline.getTime() - now.getTime();
+            return timeDiff <= 24 * 60 * 60 * 1000 && timeDiff > 0; // 24小时内且未过期
+        }
+
+        // 筛选任务
+        function filterTasks() {
+            const pointsFilter = document.getElementById('pointsFilter').value;
+            const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredTasks = allTasks.filter(task => {
+                // 积分筛选
+                let matchPoints = true;
+                if (pointsFilter) {
+                    const filterValue = parseInt(pointsFilter);
+                    if (filterValue === 5) {
+                        matchPoints = task.point < 5;
+                    } else if (filterValue === 10) {
+                        matchPoints = task.point >= 5 && task.point <= 10;
+                    } else if (filterValue === 20) {
+                        matchPoints = task.point > 10 && task.point <= 20;
+                    } else if (filterValue === 50) {
+                        matchPoints = task.point > 20;
+                    }
+                }
+
+                // 关键词搜索
+                const matchSearch = !searchKeyword || 
+                    task.title.toLowerCase().includes(searchKeyword) ||
+                    (task.description && task.description.toLowerCase().includes(searchKeyword));
+                
+                return matchPoints && matchSearch;
+            });
+
+            renderTasks();
+        }
+
+        // 搜索任务
+        function searchTasks() {
+            filterTasks();
+        }
+
+        // 清除筛选条件
+        function clearFilters() {
+            document.getElementById('pointsFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            filteredTasks = [...allTasks];
+            renderTasks();
+        }
+
+        // 查看任务详情
+        async function viewTaskDetail(taskId) {
+            try {
+                const task = allTasks.find(t => t.id === taskId);
+                if (!task) {
+                    Toast.error('任务不存在');
+                    return;
+                }
+
+                const content = document.getElementById('taskDetailContent');
+                const isUrgent = isUrgentTask(task);
+                const timeLeft = DateUtil.fromNow(task.deadline);
+
+                content.innerHTML = `
+                    <div style="margin-bottom: 1rem;">
+                        <h4>${task.title}</h4>
+                        ${isUrgent ? '<div style="color: #dc3545; font-weight: bold; margin-bottom: 0.5rem;">🔥 紧急任务</div>' : ''}
+                        <div class="task-points" style="display: inline-block;">${task.point} 积分</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong>任务描述：</strong>
+                        <p style="margin: 0.5rem 0; line-height: 1.6; background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                            ${task.description || '暂无详细描述'}
+                        </p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <strong>奖励积分：</strong>
+                            <span class="task-points">${task.point} 积分</span>
+                        </div>
+                        <div>
+                            <strong>截止时间：</strong>
+                            <span style="color: ${isUrgent ? '#dc3545' : 'inherit'};">
+                                ${DateUtil.format(task.deadline)}
+                            </span>
+                        </div>
+                        <div>
+                            <strong>剩余时间：</strong>
+                            <span style="color: ${isUrgent ? '#dc3545' : '#666'};">${timeLeft}</span>
+                        </div>
+                        <div>
+                            <strong>发布时间：</strong>
+                            <span>${DateUtil.format(task.createTime)}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+                        <strong>💡 温馨提示：</strong>
+                        <ul style="margin: 0.5rem 0 0 0; line-height: 1.6;">
+                            <li>领取任务后请按时完成</li>
+                            <li>完成后及时提交等待家长确认</li>
+                            <li>确认完成后积分会自动添加到账户</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="assignTaskFromDetail(${task.id})" style="flex: 1;">
+                            ✅ 立即领取
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeTaskDetail()">
+                            ❌ 取消
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('taskDetailModal').style.display = 'block';
+            } catch (error) {
+                Toast.error('加载任务详情失败');
+            }
+        }
+
+        // 关闭任务详情
+        function closeTaskDetail() {
+            document.getElementById('taskDetailModal').style.display = 'none';
+        }
+
+        // 从详情页面领取任务
+        async function assignTaskFromDetail(taskId) {
+            await assignTask(taskId);
+            closeTaskDetail();
+        }
+
+        // 领取任务
+        async function assignTask(taskId) {
+            try {
+                Loading.show();
+                const response = await Http.post(`/api/tasks/${taskId}/assign`);
+                
+                if (response.code === 200) {
+                    Toast.success('任务领取成功！去"我的任务"查看吧');
+                    // 重新加载任务列表
+                    await loadTasks();
+                } else {
+                    Toast.error(response.message || '领取失败');
+                }
+            } catch (error) {
+                Toast.error('网络错误，请稍后重试');
+            } finally {
+                Loading.hide();
+            }
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('taskDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTaskDetail();
+            }
+        });
+    </script>
+</body>
+</html> 

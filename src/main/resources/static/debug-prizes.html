@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奖品API调试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .result { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>奖品API调试页面</h1>
+        
+        <div>
+            <h3>当前用户信息：</h3>
+            <div id="userInfo" class="result"></div>
+        </div>
+        
+        <div>
+            <button onclick="testPrizesAPI()">测试奖品API</button>
+            <button onclick="testCurrentPoints()">测试积分API</button>
+            <button onclick="clearResults()">清除结果</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // 显示当前用户信息
+        function showUserInfo() {
+            const user = Storage.getUser();
+            const userInfoDiv = document.getElementById('userInfo');
+            if (user) {
+                userInfoDiv.innerHTML = `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                userInfoDiv.className = 'result success';
+            } else {
+                userInfoDiv.innerHTML = '未登录';
+                userInfoDiv.className = 'result error';
+            }
+        }
+
+        // 测试奖品API
+        async function testPrizesAPI() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                addResult('开始测试奖品API...', 'info');
+                
+                const response = await Http.get('/api/prizes/available');
+                
+                addResult('API响应:', 'info');
+                addResult(JSON.stringify(response, null, 2), 'success');
+                
+                if (response.code === 200) {
+                    const prizes = response.data || [];
+                    addResult(`成功获取 ${prizes.length} 个奖品`, 'success');
+                    
+                    if (prizes.length > 0) {
+                        addResult('第一个奖品详情:', 'info');
+                        addResult(JSON.stringify(prizes[0], null, 2), 'success');
+                    }
+                } else {
+                    addResult(`API错误: ${response.message}`, 'error');
+                }
+                
+            } catch (error) {
+                addResult(`请求失败: ${error.message}`, 'error');
+                console.error('奖品API测试失败:', error);
+            }
+        }
+
+        // 测试积分API
+        async function testCurrentPoints() {
+            try {
+                addResult('开始测试积分API...', 'info');
+                
+                const response = await Http.get('/api/points/current');
+                
+                addResult('积分API响应:', 'info');
+                addResult(JSON.stringify(response, null, 2), 'success');
+                
+            } catch (error) {
+                addResult(`积分API失败: ${error.message}`, 'error');
+                console.error('积分API测试失败:', error);
+            }
+        }
+
+        // 添加结果
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+            
+            if (typeof message === 'string') {
+                resultDiv.innerHTML = `<pre>${message}</pre>`;
+            } else {
+                resultDiv.innerHTML = `<pre>${JSON.stringify(message, null, 2)}</pre>`;
+            }
+            
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // 清除结果
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showUserInfo();
+        });
+    </script>
+</body>
+</html> 
