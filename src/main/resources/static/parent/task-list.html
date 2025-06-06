@@ -34,8 +34,8 @@
             </div>
             
             <!-- 筛选和搜索 -->
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="filter-bar">
+                <div class="filter-item">
                     <label for="statusFilter">状态筛选：</label>
                     <select id="statusFilter" onchange="filterTasks()">
                         <option value="">全部状态</option>
@@ -46,33 +46,33 @@
                     </select>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="filter-item">
                     <label for="searchInput">搜索：</label>
                     <input type="text" id="searchInput" placeholder="搜索任务标题..." 
-                           onkeyup="searchTasks()" style="width: 200px;">
+                           onkeyup="searchTasks()">
                 </div>
                 
-                <button class="btn btn-secondary" onclick="loadTasks()">
+                <button class="btn btn-secondary btn-sm" onclick="loadTasks()">
                     🔄 刷新
                 </button>
             </div>
         </div>
 
         <!-- 任务统计 -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div class="grid-4" style="margin-bottom: 2rem;">
+            <div class="card stats-card">
                 <div class="stats-number" id="totalTasksCount">-</div>
                 <div class="stats-label">总任务数</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);">
                 <div class="stats-number" id="pendingTasksCount">-</div>
                 <div class="stats-label">待确认</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
                 <div class="stats-number" id="completedTasksCount">-</div>
                 <div class="stats-label">已完成</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);">
                 <div class="stats-number" id="inProgressTasksCount">-</div>
                 <div class="stats-label">进行中</div>
             </div>
@@ -81,23 +81,21 @@
         <!-- 任务列表 -->
         <div class="card">
             <h3>📝 任务列表</h3>
-            <div id="tasksList" class="loading">
+            <div id="tasksList" class="task-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
     </div>
 
     <!-- 任务详情模态框 -->
-    <div id="taskDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-            <div class="card" style="max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>📋 任务详情</h3>
-                    <button class="btn btn-secondary" onclick="closeTaskDetail()">✕</button>
-                </div>
-                <div id="taskDetailContent">
-                    <!-- 任务详情内容将通过JS填充 -->
-                </div>
+    <div id="taskDetailModal" class="modal" style="display: none;">
+        <div class="modal-content card" style="max-width: 600px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>📋 任务详情</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeTaskDetail()">✕</button>
+            </div>
+            <div id="taskDetailContent">
+                <!-- 任务详情内容将通过JS填充 -->
             </div>
         </div>
     </div>

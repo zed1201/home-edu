@@ -34,8 +34,8 @@
             </div>
             
             <!-- 筛选和搜索 -->
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="filter-bar">
+                <div class="filter-item">
                     <label for="statusFilter">状态筛选：</label>
                     <select id="statusFilter" onchange="filterTasks()">
                         <option value="">全部状态</option>
@@ -45,33 +45,33 @@
                     </select>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="filter-item">
                     <label for="searchInput">搜索：</label>
                     <input type="text" id="searchInput" placeholder="搜索任务标题..." 
-                           onkeyup="searchTasks()" style="width: 200px;">
+                           onkeyup="searchTasks()">
                 </div>
                 
-                <button class="btn btn-secondary" onclick="loadTasks()">
+                <button class="btn btn-secondary btn-sm" onclick="loadTasks()">
                     🔄 刷新
                 </button>
             </div>
         </div>
 
         <!-- 任务统计 -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div class="grid-4" style="margin-bottom: 2rem;">
+            <div class="card stats-card">
                 <div class="stats-number" id="totalTasksCount">-</div>
                 <div class="stats-label">总任务数</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);">
                 <div class="stats-number" id="inProgressTasksCount">-</div>
                 <div class="stats-label">进行中</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);">
                 <div class="stats-number" id="waitConfirmTasksCount">-</div>
                 <div class="stats-label">待确认</div>
             </div>
-            <div class="card" style="text-align: center; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+            <div class="card stats-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
                 <div class="stats-number" id="completedTasksCount">-</div>
                 <div class="stats-label">已完成</div>
             </div>
@@ -79,55 +79,77 @@
 
         <!-- 任务列表 -->
         <div class="card">
-            <h3>📋 任务列表</h3>
-            <div id="tasksList" class="loading">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>📋 任务列表</h3>
+                <div id="paginationInfo" style="color: #666; font-size: 0.9rem;"></div>
+            </div>
+            <div id="tasksList" class="task-list loading">
                 <div class="spinner"></div>
+            </div>
+            
+            <!-- 分页控制 -->
+            <div id="paginationControls" style="display: none; margin-top: 1.5rem; text-align: center;">
+                <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <button id="prevPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(-1)">
+                        ← 上一页
+                    </button>
+                    <div id="pageNumbers" style="display: flex; gap: 0.25rem; align-items: center;"></div>
+                    <button id="nextPageBtn" class="btn btn-secondary btn-sm" onclick="changePage(1)">
+                        下一页 →
+                    </button>
+                </div>
+                <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                    每页显示 
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="margin: 0 0.5rem; padding: 0.25rem;">
+                        <option value="6">6</option>
+                        <option value="12" selected>12</option>
+                        <option value="24">24</option>
+                        <option value="all">全部</option>
+                    </select>
+                    条任务
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 任务详情模态框 -->
-    <div id="taskDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-            <div class="card" style="max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>📋 任务详情</h3>
-                    <button class="btn btn-secondary" onclick="closeTaskDetail()">✕</button>
-                </div>
-                <div id="taskDetailContent">
-                    <!-- 任务详情内容将通过JS填充 -->
-                </div>
+    <div id="taskDetailModal" class="modal" style="display: none;">
+        <div class="modal-content card" style="max-width: 600px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>📋 任务详情</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeTaskDetail()">✕</button>
+            </div>
+            <div id="taskDetailContent">
+                <!-- 任务详情内容将通过JS填充 -->
             </div>
         </div>
     </div>
 
     <!-- 提交任务模态框 -->
-    <div id="submitTaskModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
-            <div class="card" style="max-width: 500px; width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>📤 提交任务</h3>
-                    <button class="btn btn-secondary" onclick="closeSubmitModal()">✕</button>
-                </div>
-                
-                <form id="submitTaskForm">
-                    <div class="form-group">
-                        <label for="submitContent">完成说明 *</label>
-                        <textarea id="submitContent" name="submitContent" required 
-                                  placeholder="请详细描述任务完成情况..."></textarea>
-                        <small style="color: #666;">请详细说明任务完成情况，便于家长确认</small>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">
-                            ✅ 提交完成
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="closeSubmitModal()">
-                            ❌ 取消
-                        </button>
-                    </div>
-                </form>
+    <div id="submitTaskModal" class="modal" style="display: none;">
+        <div class="modal-content card" style="max-width: 500px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>📤 提交任务</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeSubmitModal()">✕</button>
             </div>
+            
+            <form id="submitTaskForm">
+                <div class="form-group">
+                    <label for="submitContent">完成说明 *</label>
+                    <textarea id="submitContent" name="submitContent" required 
+                              placeholder="请详细描述任务完成情况..."></textarea>
+                    <small style="color: #666;">请详细说明任务完成情况，便于家长确认</small>
+                </div>
+
+                <div class="grid-2" style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">
+                        ✅ 提交完成
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeSubmitModal()">
+                        ❌ 取消
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -136,6 +158,8 @@
         let allTasks = [];
         let filteredTasks = [];
         let currentSubmitTaskId = null;
+        let currentPage = 1;
+        let pageSize = 12;
 
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
@@ -186,8 +210,12 @@
 
         // 加载任务列表
         async function loadTasks() {
+            const container = document.getElementById('tasksList');
             try {
-                Loading.show(document.getElementById('tasksList'));
+                // 显示加载状态
+                container.classList.add('loading');
+                container.innerHTML = '<div class="spinner"></div>';
+                
                 const response = await Http.get('/api/tasks/my-assigned');
                 
                 if (response.code === 200) {
@@ -200,15 +228,14 @@
                     throw new Error(response.message || '加载失败');
                 }
             } catch (error) {
-                document.getElementById('tasksList').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         <p>加载任务失败</p>
                         <button class="btn btn-primary" onclick="loadTasks()">重试</button>
                     </div>
                 `;
                 Toast.error('加载任务失败，请稍后重试');
-            } finally {
-                Loading.hide();
             }
         }
 
@@ -230,8 +257,16 @@
         // 渲染任务列表
         function renderTasks() {
             const container = document.getElementById('tasksList');
+            const paginationControls = document.getElementById('paginationControls');
+            const paginationInfo = document.getElementById('paginationInfo');
+            
+            // 确保移除loading类，恢复网格布局
+            container.classList.remove('loading');
             
             if (filteredTasks.length === 0) {
+                paginationControls.style.display = 'none';
+                paginationInfo.textContent = '';
+                
                 if (allTasks.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; color: #666; padding: 2rem;">
@@ -267,13 +302,39 @@
                 return new Date(a.deadline) - new Date(b.deadline);
             });
 
-            container.innerHTML = sortedTasks.map(task => {
+            // 计算分页
+            const totalTasks = sortedTasks.length;
+            const totalPages = pageSize === 'all' ? 1 : Math.ceil(totalTasks / pageSize);
+            
+            // 确保当前页面在有效范围内
+            currentPage = Math.max(1, Math.min(currentPage, totalPages));
+            
+            // 获取当前页的任务
+            let currentTasks = sortedTasks;
+            if (pageSize !== 'all') {
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                currentTasks = sortedTasks.slice(startIndex, endIndex);
+            }
+            
+            // 更新分页信息
+            if (pageSize === 'all') {
+                paginationInfo.textContent = `共 ${totalTasks} 个任务`;
+                paginationControls.style.display = 'none';
+            } else {
+                const startNum = totalTasks === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+                const endNum = Math.min(currentPage * pageSize, totalTasks);
+                paginationInfo.textContent = `第 ${startNum}-${endNum} 项，共 ${totalTasks} 个任务`;
+                paginationControls.style.display = totalPages > 1 ? 'block' : 'none';
+            }
+
+            container.innerHTML = currentTasks.map(task => {
                 const isUrgent = isUrgentTask(task);
                 const isOverdue = isOverdueTask(task);
                 const timeLeft = DateUtil.fromNow(task.deadline);
                 
                 return `
-                    <div class="task-item" style="margin-bottom: 1rem; ${isUrgent && !isOverdue ? 'border-left: 4px solid #ffc107;' : ''} ${isOverdue ? 'border-left: 4px solid #dc3545;' : ''}">
+                    <div class="task-item" style="${isUrgent && !isOverdue ? 'border-left: 4px solid #ffc107;' : ''} ${isOverdue ? 'border-left: 4px solid #dc3545;' : ''}">
                         <div class="task-header">
                             <div class="task-title">
                                 ${task.title}
@@ -325,6 +386,11 @@
                     </div>
                 `;
             }).join('');
+            
+            // 渲染分页控制器
+            if (pageSize !== 'all' && totalPages > 1) {
+                renderPaginationControls(totalPages);
+            }
         }
 
         // 判断是否是紧急任务（24小时内截止）
@@ -354,6 +420,7 @@
                 return matchStatus && matchSearch;
             });
 
+            currentPage = 1; // 筛选后重置到第一页
             renderTasks();
         }
 
@@ -367,6 +434,7 @@
             document.getElementById('statusFilter').value = '';
             document.getElementById('searchInput').value = '';
             filteredTasks = [...allTasks];
+            currentPage = 1; // 清除筛选后重置到第一页
             renderTasks();
         }
 
@@ -490,6 +558,83 @@
                 'DONE': '已完成'
             };
             return statusMap[status] || status;
+        }
+
+        // 渲染分页控制器
+        function renderPaginationControls(totalPages) {
+            const pageNumbers = document.getElementById('pageNumbers');
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            
+            // 更新上一页/下一页按钮状态
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+            
+            // 生成页码按钮
+            let pageButtons = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // 调整开始页，确保显示足够的页码
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // 如果不是从第一页开始，显示第一页和省略号
+            if (startPage > 1) {
+                pageButtons += `<button class="btn btn-secondary btn-sm" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    pageButtons += `<span style="padding: 0 0.5rem;">...</span>`;
+                }
+            }
+            
+            // 显示页码范围
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                pageButtons += `
+                    <button class="btn ${isActive ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                            onclick="goToPage(${i})" 
+                            ${isActive ? 'style="font-weight: bold;"' : ''}>
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            // 如果不是到最后一页，显示省略号和最后一页
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageButtons += `<span style="padding: 0 0.5rem;">...</span>`;
+                }
+                pageButtons += `<button class="btn btn-secondary btn-sm" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            pageNumbers.innerHTML = pageButtons;
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            currentPage = page;
+            renderTasks();
+        }
+        
+        // 切换页面
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            const totalPages = pageSize === 'all' ? 1 : Math.ceil(filteredTasks.length / pageSize);
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderTasks();
+            }
+        }
+        
+        // 改变每页显示数量
+        function changePageSize() {
+            const select = document.getElementById('pageSizeSelect');
+            pageSize = select.value === 'all' ? 'all' : parseInt(select.value);
+            currentPage = 1; // 重置到第一页
+            renderTasks();
         }
 
         // 点击模态框背景关闭

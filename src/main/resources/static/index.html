@@ -177,24 +177,165 @@
         }
 
         /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .login-wrapper {
+                max-width: 90%;
+            }
+            
+            .login-left {
+                padding: 2.5rem;
+            }
+            
+            .login-right {
+                padding: 2.5rem;
+            }
+        }
+        
         @media (max-width: 768px) {
             .login-wrapper {
                 flex-direction: column;
                 width: 100%;
                 min-height: 100vh;
                 border-radius: 0;
+                box-shadow: none;
             }
             
             .login-left {
                 min-height: 200px;
+                padding: 2rem;
             }
             
             .login-left h1 {
                 font-size: 2rem;
             }
             
+            .login-left p {
+                font-size: 1rem;
+            }
+            
             .login-right {
                 padding: 2rem;
+            }
+            
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .tab-button {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .form-group input {
+                padding: 12px 14px;
+                font-size: 16px; /* 防止iOS放大 */
+            }
+            
+            .login-button {
+                padding: 16px;
+                font-size: 1.1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-left {
+                min-height: 150px;
+                padding: 1.5rem;
+            }
+            
+            .login-left h1 {
+                font-size: 1.75rem;
+            }
+            
+            .login-left p {
+                font-size: 0.9rem;
+            }
+            
+            .login-right {
+                padding: 1.5rem;
+            }
+            
+            .login-header {
+                margin-bottom: 1.5rem;
+            }
+            
+            .login-header h2 {
+                font-size: 1.3rem;
+            }
+            
+            .login-header p {
+                font-size: 0.9rem;
+            }
+            
+            .login-tabs {
+                margin-bottom: 1.5rem;
+            }
+            
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1.25rem;
+            }
+            
+            .form-group label {
+                font-size: 0.9rem;
+            }
+            
+            .form-group input {
+                padding: 14px 12px;
+                font-size: 16px;
+            }
+            
+            .login-button {
+                padding: 18px;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .login-left {
+                padding: 1rem;
+            }
+            
+            .login-left h1 {
+                font-size: 1.5rem;
+            }
+            
+            .login-right {
+                padding: 1rem;
+            }
+            
+            .tab-button {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* 横屏模式优化 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .login-wrapper {
+                flex-direction: row;
+                min-height: 100vh;
+            }
+            
+            .login-left {
+                min-height: auto;
+                padding: 1.5rem;
+            }
+            
+            .login-left h1 {
+                font-size: 1.5rem;
+            }
+            
+            .login-left p {
+                font-size: 0.85rem;
+            }
+            
+            .login-right {
+                padding: 1.5rem;
             }
         }
     </style>
