@@ -110,7 +110,7 @@
                 </button>
             </div>
             
-            <div id="prizesList" class="loading">
+            <div id="prizesList" class="prize-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -359,11 +359,16 @@
 
         // 加载奖品列表
         async function loadPrizes() {
+            const container = document.getElementById('prizesList');
             try {
-                const container = document.getElementById('prizesList');
-                Loading.show(container);
+                // 显示加载状态
+                container.classList.add('loading');
+                container.innerHTML = '<div class="spinner"></div>';
                 
                 const response = await Http.get('/api/prizes/my-created');
+                
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 if (response.code === 200) {
                     const prizes = response.data || [];
@@ -378,7 +383,7 @@
                     }
 
                     container.innerHTML = prizes.map(prize => `
-                        <div class="prize-item" style="margin-bottom: 1rem;">
+                        <div class="prize-item">
                             <div class="prize-header">
                                 <div class="prize-name">${prize.name}</div>
                                 <div class="prize-points">${prize.costPoints} 积分</div>
@@ -411,14 +416,13 @@
                     throw new Error(response.message || '加载失败');
                 }
             } catch (error) {
-                document.getElementById('prizesList').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         <p>加载奖品失败</p>
                         <button class="btn btn-primary" onclick="loadPrizes()">重试</button>
                     </div>
                 `;
-            } finally {
-                Loading.hide();
             }
         }
 

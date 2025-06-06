@@ -97,7 +97,7 @@
                 <h3>⏳ 进行中的任务</h3>
                 <a href="/student/my-tasks.html" style="color: #667eea; text-decoration: none;">查看全部 →</a>
             </div>
-            <div id="inProgressTasksList" class="loading">
+            <div id="inProgressTasksList" class="task-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -116,7 +116,7 @@
                 <h3>🎁 推荐奖品</h3>
                 <a href="/student/exchange-prize.html" style="color: #667eea; text-decoration: none;">查看更多 →</a>
             </div>
-            <div id="recommendedPrizes" class="loading">
+            <div id="recommendedPrizes" class="prize-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -251,9 +251,12 @@
 
         // 加载进行中的任务
         async function loadInProgressTasks() {
+            const container = document.getElementById('inProgressTasksList');
             try {
                 const response = await Http.get('/api/tasks/my-assigned');
-                const container = document.getElementById('inProgressTasksList');
+                
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 if (response.code === 200 && response.data && response.data.length > 0) {
                     const inProgressTasks = response.data.filter(task => 
@@ -262,7 +265,7 @@
 
                     if (inProgressTasks.length > 0) {
                         container.innerHTML = inProgressTasks.map(task => `
-                            <div class="task-item" style="margin-bottom: 1rem;">
+                            <div class="task-item">
                                 <div class="task-header">
                                     <div class="task-title">${task.title}</div>
                                     <div class="task-status status-${task.status.toLowerCase().replace('_', '-')}">${getStatusText(task.status)}</div>
@@ -298,7 +301,8 @@
                     `;
                 }
             } catch (error) {
-                document.getElementById('inProgressTasksList').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         加载进行中任务失败
                     </div>
@@ -349,9 +353,12 @@
 
         // 加载推荐奖品
         async function loadRecommendedPrizes() {
+            const container = document.getElementById('recommendedPrizes');
             try {
                 const response = await Http.get('/api/prizes/available');
-                const container = document.getElementById('recommendedPrizes');
+                
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 console.log('推荐奖品API响应:', response); // 调试日志
                 
@@ -364,7 +371,7 @@
                     container.innerHTML = recommendedPrizes.map(prize => {
                         try {
                             return `
-                                <div class="prize-item" style="margin-bottom: 1rem;">
+                                <div class="prize-item">
                                     <div class="prize-header">
                                         <div class="prize-name">${prize.name || ''}</div>
                                         <div class="prize-points">${prize.costPoints || 0} 积分</div>
@@ -381,7 +388,7 @@
                         } catch (prizeError) {
                             console.error('渲染单个奖品失败:', prizeError, prize);
                             return `
-                                <div class="prize-item" style="margin-bottom: 1rem;">
+                                <div class="prize-item">
                                     <div style="color: #dc3545; padding: 1rem;">
                                         奖品显示出错: ${prize.name || '未知'}
                                     </div>
@@ -399,7 +406,8 @@
                 }
             } catch (error) {
                 console.error('加载推荐奖品失败:', error); // 调试日志
-                document.getElementById('recommendedPrizes').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         加载推荐奖品失败：${error.message}
                     </div>

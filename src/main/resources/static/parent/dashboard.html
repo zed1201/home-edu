@@ -75,7 +75,7 @@
         <!-- 学生积分概览 -->
         <div class="card">
             <h3>👥 我的学生积分概览</h3>
-            <div id="studentsList" class="loading">
+            <div id="studentsList" class="task-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -83,7 +83,7 @@
         <!-- 最近任务 -->
         <div class="card">
             <h3>🕐 最近任务动态</h3>
-            <div id="recentTasks" class="loading">
+            <div id="recentTasks" class="task-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -91,7 +91,7 @@
         <!-- 待确认任务 -->
         <div class="card">
             <h3>⏰ 待确认任务</h3>
-            <div id="pendingTasksList" class="loading">
+            <div id="pendingTasksList" class="task-list loading">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -160,11 +160,13 @@
 
         // 加载学生列表
         async function loadStudentsList() {
+            const container = document.getElementById('studentsList');
             try {
                 const user = Storage.getUser();
                 const response = await Http.get(`/api/user/${user.userId}/students`);
                 
-                const container = document.getElementById('studentsList');
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 if (response.code === 200 && response.data && response.data.length > 0) {
                     const students = response.data;
@@ -187,7 +189,7 @@
                     );
 
                     container.innerHTML = studentsWithPoints.map(student => `
-                        <div class="task-item" style="margin-bottom: 1rem;">
+                        <div class="task-item">
                             <div class="task-header">
                                 <div class="task-title">${student.realName || student.username}</div>
                                 <div class="task-points">${student.points} 积分</div>
@@ -208,7 +210,8 @@
                     `;
                 }
             } catch (error) {
-                document.getElementById('studentsList').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         加载学生信息失败
                     </div>
@@ -218,9 +221,12 @@
 
         // 加载最近任务
         async function loadRecentTasks() {
+            const container = document.getElementById('recentTasks');
             try {
                 const response = await Http.get('/api/tasks/my-created');
-                const container = document.getElementById('recentTasks');
+                
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 if (response.code === 200 && response.data && response.data.length > 0) {
                     // 按创建时间排序，取最近5个
@@ -229,7 +235,7 @@
                         .slice(0, 5);
 
                     container.innerHTML = recentTasks.map(task => `
-                        <div class="task-item" style="margin-bottom: 1rem;">
+                        <div class="task-item">
                             <div class="task-header">
                                 <div class="task-title">${task.title}</div>
                                 <div class="task-status status-${task.status.toLowerCase().replace('_', '-')}">${getStatusText(task.status)}</div>
@@ -249,7 +255,8 @@
                     `;
                 }
             } catch (error) {
-                document.getElementById('recentTasks').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         加载任务失败
                     </div>
@@ -259,13 +266,16 @@
 
         // 加载待确认任务
         async function loadPendingTasks() {
+            const container = document.getElementById('pendingTasksList');
             try {
                 const response = await Http.get('/api/tasks/pending-confirm');
-                const container = document.getElementById('pendingTasksList');
+                
+                // 确保移除loading类，恢复网格布局
+                container.classList.remove('loading');
                 
                 if (response.code === 200 && response.data && response.data.length > 0) {
                     container.innerHTML = response.data.map(task => `
-                        <div class="task-item" style="margin-bottom: 1rem;">
+                        <div class="task-item">
                             <div class="task-header">
                                 <div class="task-title">${task.title}</div>
                                 <div class="task-points">${task.point} 积分</div>
@@ -292,7 +302,8 @@
                     `;
                 }
             } catch (error) {
-                document.getElementById('pendingTasksList').innerHTML = `
+                container.classList.remove('loading');
+                container.innerHTML = `
                     <div style="text-align: center; color: #e74c3c; padding: 2rem;">
                         加载待确认任务失败
                     </div>
