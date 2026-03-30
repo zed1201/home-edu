@@ -41,6 +41,11 @@ public class User {
     private String avatarUrl;
 
     /**
+     * 历史累计积分
+     */
+    private Integer historyPoints;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createdAt;

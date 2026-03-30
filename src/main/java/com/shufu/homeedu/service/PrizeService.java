@@ -11,6 +11,7 @@ import com.shufu.homeedu.enums.PrizeStatus;
 import com.shufu.homeedu.mapper.PointLogMapper;
 import com.shufu.homeedu.mapper.PrizeExchangeMapper;
 import com.shufu.homeedu.mapper.PrizeMapper;
+import com.shufu.homeedu.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class PrizeService {
     private final PrizeMapper prizeMapper;
     private final PrizeExchangeMapper prizeExchangeMapper;
     private final PointLogMapper pointLogMapper;
+    private final UserMapper userMapper;
 
     /**
      * 创建奖品（家长）
@@ -142,6 +144,9 @@ public class PrizeService {
                 pointLog.setPoints(exchange.getCostPoints());
                 pointLog.setDescription("兑换取消，退还积分：" + prize.getName());
                 pointLogMapper.insert(pointLog);
+                if (exchange.getCostPoints() != null && exchange.getCostPoints() > 0) {
+                    userMapper.addHistoryPoints(exchange.getStudentId(), exchange.getCostPoints());
+                }
             }
         }
     }

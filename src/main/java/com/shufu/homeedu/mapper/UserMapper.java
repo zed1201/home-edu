@@ -39,6 +39,12 @@ public interface UserMapper {
     int update(User user);
 
     /**
+     * 增加历史累计积分
+     */
+    @Update("UPDATE user SET history_points = history_points + #{points} WHERE id = #{studentId}")
+    int addHistoryPoints(@Param("studentId") Long studentId, @Param("points") Integer points);
+
+    /**
      * 根据角色查询用户列表
      */
     @Select("SELECT * FROM user WHERE role = #{role}")

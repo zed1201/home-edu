@@ -47,4 +47,14 @@ INSERT INTO `prize` (parent_id, name, description, cost_points, stock, status) V
 -- 插入示例积分记录（给学生一些初始积分）
 INSERT INTO `point_log` (student_id, type, points, description) VALUES
 ((SELECT id FROM user WHERE username = 'student001'), 'ADJUST', 25, '初始积分'),
-((SELECT id FROM user WHERE username = 'student002'), 'ADJUST', 15, '初始积分'); 
+((SELECT id FROM user WHERE username = 'student002'), 'ADJUST', 15, '初始积分');
+
+-- 回填历史累计积分
+UPDATE `user` u
+LEFT JOIN (
+  SELECT student_id, COALESCE(SUM(CASE WHEN points > 0 THEN points ELSE 0 END), 0) AS history_points
+  FROM point_log
+  GROUP BY student_id
+) p ON u.id = p.student_id
+SET u.history_points = COALESCE(p.history_points, 0)
+WHERE u.role = 'STUDENT';
